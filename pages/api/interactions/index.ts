@@ -20,6 +20,7 @@ const handler = async (
       type: 4,
       data: {
         content: `${BASE_URL}/connect/${interaction?.member?.user.id}`,
+        flags: 1<<6,
       },
     });
   } else {
