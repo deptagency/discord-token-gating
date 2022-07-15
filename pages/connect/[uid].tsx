@@ -15,8 +15,12 @@ type Props = {
   uid: string;
 };
 const ContractRead = ({ address, uid }: Props) => {
-  const { data, isError, isLoading } = useContractRead({
-    addressOrName: "0x829d51aA22a3aD2b34858351C7a1FD206816aA75",
+  const {
+    data,
+    isError,
+    isLoading,
+  } = useContractRead({
+    addressOrName: "0x485dbef4a8e09a5c652b9d9672265e0da4324a46",
     contractInterface: abi,
     functionName: "balanceOf",
     args: address,
