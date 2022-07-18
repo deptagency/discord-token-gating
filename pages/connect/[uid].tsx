@@ -62,7 +62,11 @@ const Home: NextPage = () => {
   const { address, isConnected } = useAccount();
   const [showContract, setShowContract] = useState<Boolean>(false);
   useEffect(() => {
-    isConnected && setShowContract(true);
+    if(isConnected) {
+      setShowContract(true);
+    } else {
+      setShowContract(false)
+    }
   }, [isConnected]);
 
   return (
