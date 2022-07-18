@@ -51,6 +51,8 @@ const ContractRead = ({ address, uid }: Props) => {
     return <p>Error updating your Discord permissions</p>;
   if (permissionStatus === "success")
     return <p>Success! You now have full access to the Discord server.</p>;
+    if (permissionStatus === "noToken")
+    return <p>Uh-oh, looks like you don&apos;t have the required token.</p>;
   return null;
 };
 
