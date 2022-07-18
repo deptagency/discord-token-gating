@@ -28,6 +28,7 @@ const handler = async (
       type: 4,
       data: {
         content: "Invalid command.",
+        flags: 1<<6,
       },
     });
   }
