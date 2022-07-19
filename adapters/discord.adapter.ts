@@ -63,12 +63,7 @@ export default class DiscordAdapter {
     const guild = this.getGuild();
     const member = await this.getMember(guild, memberId);
 
-    if (member.roles.cache.find(role => role.name === ROLE_NAME)) {
-      // role already assigned, exit early
-      return true;
-    }
-
-    return false;
+    return !!member.roles.cache.find(role => role.name === roleName);
   }
 
 }
