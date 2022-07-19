@@ -2,7 +2,6 @@ import { Client, DiscordAPIError, Intents, Role } from "discord.js";
 import { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from 'redis';
 import Cors from "cors";
-import { UserRejectedRequestError } from "wagmi";
 
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID as string;
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN as string;
