@@ -6,7 +6,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { useAccount, useContractRead } from "wagmi";
-import abi from "../../contract/abi";
+import contract from "../../solidity/build/contracts/DiscordInvite.json";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
@@ -20,8 +20,8 @@ const ContractRead = ({ address, uid }: Props) => {
     isError,
     isLoading,
   } = useContractRead({
-    addressOrName: "0x485dbef4a8e09a5c652b9d9672265e0da4324a46",
-    contractInterface: abi,
+    addressOrName: contract.networks[4].address, //Rinkeby testnet is network 4
+    contractInterface: contract.abi,
     functionName: "balanceOf",
     args: address,
   });
