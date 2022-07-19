@@ -1,6 +1,8 @@
 import { Client, DiscordAPIError, Intents, Role } from "discord.js";
 import { NextApiRequest, NextApiResponse } from "next";
+import { createClient } from 'redis';
 import Cors from "cors";
+import { UserRejectedRequestError } from "wagmi";
 
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID as string;
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN as string;
@@ -27,10 +29,31 @@ function runMiddleware(
   });
 }
 
+const saveUserToken = async (memberId: string, tokenId: string) => {
+  const redis = createClient({
+    url : process.env.REDIS_URL,
+    password: process.env.REDIS_PASSWORD,
+    socket: {
+      tls: true
+    }
+  });
+
+  redis.on("error", err => console.log("Redis Client Error", err));
+
+  try {
+    await redis.connect();
+    await redis.set(memberId, tokenId);
+    redis.quit();
+  } catch (e) {
+    console.log(e);
+  }
+};
+
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   await runMiddleware(req, res, cors);
-  if (!req.body.memberId) {
-    res.status(400).json({ error: "No member ID provided" });
+  const { memberId, tokenId } = req.body;
+  if (!memberId) {
+    return res.status(400).json({ error: "No member ID provided" });
   }
 
   //initialize discord client
@@ -40,8 +63,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   // load guild
   const targetGuild = await client.guilds.cache.get(DISCORD_GUILD_ID);
   if (targetGuild === undefined) {
-    res.status(500).json({ error: "Guild not configured properly" });
-    return;
+    return res.status(500).json({ error: "Guild not configured properly" });
   }
 
   // load role
@@ -49,12 +71,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     (r) => r.name === "Invited"
   );
   if (role === undefined) {
-    res.status(500).json({ error: "Role not found" });
-    return;
+    return res.status(500).json({ error: "Role not found" });
   }
 
   // load member
-  const member = await targetGuild.members.fetch(req.body.memberId);
+  const member = await targetGuild.members.fetch(memberId);
   if (member === undefined) {
     return res.status(400).json({ error: "Member not found" });
   }
@@ -65,10 +86,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     res.status(200).json({ message: "Success" });
   } catch (err) {
     const error = err as DiscordAPIError;
-    res
+    return res
       .status(error.httpStatus || 500)
       .json({ error: error.message || "Unknown error" });
   }
+
+  // store user and token info
+  saveUserToken(memberId, tokenId);
 };
 
 export default handler;

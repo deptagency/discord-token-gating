@@ -34,7 +34,7 @@ const ContractRead = ({ address, uid }: Props) => {
       if (parseInt(data._hex, 16) > 0) {
         setPermissionStatus("loading");
         axios
-          .post(`${BASE_URL}/api/permissions`, { memberId: uid })
+          .post(`${BASE_URL}/api/permissions`, { memberId: uid, tokenId: data._hex })
           .then((resp) => setPermissionStatus("success"))
           .catch((err) => setPermissionStatus("error"));
       } else {
