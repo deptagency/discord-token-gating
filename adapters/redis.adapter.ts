@@ -30,6 +30,12 @@ class RedisAdapter {
     await this.client.set(key, value);
     return this.client.quit();
   }
+
+  static async setAll(rows: { key: RedisCommandArgument, value: RedisCommandArgument }[]) {
+    await this.client.connect();
+    await Promise.all(rows.map(row => this.client.set(row.key, row.value)));
+    return this.client.quit();
+  }
 }
 
 export default RedisAdapter;

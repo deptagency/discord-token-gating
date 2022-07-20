@@ -44,7 +44,7 @@ const saveUserToken = async (memberId: string, tokenId: string) => {
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   await runMiddleware(req, res, cors);
-  const { memberId, tokenId } = req.body;
+  const { memberId, tokenIds } = req.body;
   if (!memberId) {
     return res.status(400).json({ error: "No member ID provided" });
   }
@@ -56,7 +56,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   RedisAdapter.initialize();
 
   try {
-    await RedisAdapter.set(memberId, tokenId);
+    await RedisAdapter.setAll(tokenIds.map((tokenId: string) => ({key: tokenId, value: memberId})))
   } catch (err) {
     // If saving the token <-> member association to the datastore fails, we should not keep the role.
     // Treat it as a transaction where the two actions either both succeed or both fail, never one or the other.

@@ -1,6 +1,6 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import axios from "axios";
-import type { NextComponentType, NextPage } from "next";
+import type { NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -10,45 +10,84 @@ import abi from "../../contract/abi";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
-type Props = {
+enum PermissionStatus {
+  Loading,
+  Success,
+  Error,
+  NoToken
+}
+
+type BalanceReadProps = {
   address: string;
   uid: string;
+  onContractRead: (balance: number) => void;
+  onStatusChange: (newStatus: PermissionStatus) => void;
 };
-const ContractRead = ({ address, uid }: Props) => {
-  const { data, isError, isLoading } = useContractRead({
+const BalanceRead = ({ address, uid, onContractRead, onStatusChange }: BalanceReadProps) => {
+  // This gets how many of our contract's token the user posesses, which we pass to the next component
+  // to control the loop to enumerate over all of said tokens they hold.
+  const { data, isError } = useContractRead({
     addressOrName: "0x485dbef4a8e09a5c652b9d9672265e0da4324a46",
     contractInterface: abi,
     functionName: "balanceOf",
     args: address,
   });
 
-  const [permissionStatus, setPermissionStatus] = useState<
-    "loading" | "success" | "error" | "noToken"
-  >();
   useEffect(() => {
     if (data && uid) {
-      if (parseInt(data._hex, 16) > 0) {
-        setPermissionStatus("loading");
-        axios
-          .post(`${BASE_URL}/api/permissions`, { memberId: uid, tokenId: data._hex })
-          .then((resp) => setPermissionStatus("success"))
-          .catch((err) => setPermissionStatus("error"));
+      const parsedBalance = parseInt(data._hex, 16);
+      if (parsedBalance > 0) {
+        onStatusChange(PermissionStatus.Loading);
+        onContractRead(parsedBalance);
       } else {
-        setPermissionStatus("noToken");
+        onStatusChange(PermissionStatus.NoToken);
       }
     }
   }, [data, uid]);
 
-  if (isLoading) return <p>Loading contract...</p>;
-  if (isError) return <p>Error reading contract</p>;
-  if (permissionStatus === "loading")
-    return <p>Token found! Updating your Discord permissions...</p>;
-  if (permissionStatus === "error")
-    return <p>Error updating your Discord permissions</p>;
-  if (permissionStatus === "success")
-    return <p>Success! You now have full access to the Discord server.</p>;
-  if (permissionStatus === "noToken")
-    return <p>Uh-oh, looks like you don&apos;t have the required token.</p>;
+  useEffect(() => {
+    if (isError) {
+      onStatusChange(PermissionStatus.Error);
+    }
+  }, [isError])
+
+  return null;
+};
+
+type TokenReadProps = {
+  address: string;
+  uid: string;
+  contractBalance: number;
+  onStatusChange: (newStatus: PermissionStatus) => void;
+};
+const TokenRead = ({ address, uid, contractBalance, onStatusChange }: TokenReadProps) => {
+  const contractReads: any[] = [];
+
+  for (let i = 0; i < Number(contractBalance); i++) {
+    // This is the only functionality I could find to get the specific token ID's of the user's current holdings. It's
+    // pretty unsightly and roundabout to have a hook in a loop but it works. The docs said to use this in combination
+    // with `balanceOf` which we called in the previous component, so that's how we got here.
+    // https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Enumerable-tokenOfOwnerByIndex-address-uint256-
+    const read = useContractRead({
+      addressOrName: "0x485dbef4a8e09a5c652b9d9672265e0da4324a46",
+      contractInterface: abi,
+      functionName: "tokenOfOwnerByIndex",
+      args: [address, i],
+    });
+    contractReads.push(read);
+  }
+
+  useEffect(() => {
+    if (contractReads.some(read => read.isError)) onStatusChange(PermissionStatus.Error);
+    if (contractReads.every(read => read.data)) {
+      console.log(`${contractReads.some(read => read.isError) || contractReads.every(read => read.data)}`)
+      const tokenIds = contractReads.map(read => read.data?._hex);
+      axios.post(`${BASE_URL}/api/permissions`, { memberId: uid, tokenIds })
+        .then(() => onStatusChange(PermissionStatus.Success))
+        .catch(() => onStatusChange(PermissionStatus.Error));
+    }
+  // Since `useContractRead` doesn't return an actual promise or observable, we have no way to watch them. Next best thing.
+  }, [contractReads.every(read => read.data) || contractReads.some(read => read.isError)]);
   return null;
 };
 
@@ -57,6 +96,9 @@ const Home: NextPage = () => {
   const { uid } = router.query;
   const { address, isConnected } = useAccount();
   const [showContract, setShowContract] = useState<Boolean>(false);
+  const [contractBalance, setContractBalance] = useState<number>();
+  const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>();
+
   useEffect(() => {
     if (isConnected) {
       setShowContract(true);
@@ -64,6 +106,14 @@ const Home: NextPage = () => {
       setShowContract(false);
     }
   }, [isConnected]);
+
+  const handleContractRead = (data: number) => {
+    setContractBalance(data);
+  };
+
+  const handleStatusChange = (newStatus: PermissionStatus) => {
+    setPermissionStatus(newStatus);
+  };
 
   return (
     <div>
@@ -81,8 +131,23 @@ const Home: NextPage = () => {
             <ConnectButton />
           </div>
           {showContract && (
-            <ContractRead address={address as string} uid={uid as string} />
+            <BalanceRead
+              address={address as string}
+              uid={uid as string}
+              onContractRead={handleContractRead}
+              onStatusChange={handleStatusChange} />
           )}
+          {showContract && contractBalance !== undefined && (
+            <TokenRead
+              address={address as string}
+              uid={uid as string}
+              contractBalance={contractBalance}
+              onStatusChange={handleStatusChange} />
+          )}
+          {permissionStatus === PermissionStatus.Loading && <p>Token found! Updating your Discord permissions...</p>}
+          {permissionStatus === PermissionStatus.Error && <p>Error updating your Discord permissions</p>}
+          {permissionStatus === PermissionStatus.Success && <p>Success! You now have full access to the Discord server.</p>}
+          {permissionStatus === PermissionStatus.NoToken && <p>Uh-oh, looks like you don't have the required token.</p>}
         </div>
       </main>
     </div>
