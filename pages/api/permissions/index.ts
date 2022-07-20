@@ -30,8 +30,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     res.status(400).json({ error: "No member ID provided" });
   }
 
-  const discordAdapter = new DiscordAdapter();
-  await discordAdapter.initialize();
+  const discordAdapter = await DiscordAdapter.getInstance();
 
   await discordAdapter.assignRole(req.body.memberId, ROLE_NAME);
 

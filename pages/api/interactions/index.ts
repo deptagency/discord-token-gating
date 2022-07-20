@@ -16,36 +16,42 @@ const handler = async (
   res: NextApiResponse,
   interaction: APIApplicationCommandInteraction
 ) => {
-  if (interaction.data.name !== "invite") {
+  if (interaction.data.name !== "invite-mateo") {
     return res.status(200).json({
       type: 4,
       data: {
         content: "Invalid command.",
-        flags: 1<<6,
+        flags: 1 << 6,
       },
     });
   }
 
-  const discordAdapter = new DiscordAdapter();
-  await discordAdapter.initialize();
+  if (!interaction.member?.user.id) {
+    throw new Error("missing user id");
+  }
 
-  const roleAlreadyAssigned =  await discordAdapter.memberHasRole(req.body.memberId, ROLE_NAME);
+  const discordAdapter = await DiscordAdapter.getInstance();
+
+  const roleAlreadyAssigned = await discordAdapter.memberHasRole(
+    interaction.member.user.id,
+    ROLE_NAME
+  );
 
   if (roleAlreadyAssigned) {
     return res.status(200).json({
       type: 4,
       data: {
-        content: 'Role already assigned!',
-        flags: 1<<6,
+        content: "Role already assigned!",
+        flags: 1 << 6,
       },
-    })
+    });
   }
- 
+
   return res.status(200).json({
     type: 4,
     data: {
       content: `${BASE_URL}/connect/${interaction?.member?.user.id}`,
-      flags: 1<<6,
+      flags: 1 << 6,
     },
   });
 };
