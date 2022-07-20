@@ -51,11 +51,18 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const discordAdapter = await DiscordAdapter.getInstance();
 
-  await discordAdapter.assignRole(req.body.memberId, ROLE_NAME);
+  await discordAdapter.assignRole(memberId, ROLE_NAME);
 
   RedisAdapter.initialize();
-  
-  await RedisAdapter.set(memberId, tokenId);
+
+  try {
+    await RedisAdapter.set(memberId, tokenId);
+  } catch (err) {
+    // If saving the token <-> member association to the datastore fails, we should not keep the role.
+    // Treat it as a transaction where the two actions either both succeed or both fail, never one or the other.
+    await discordAdapter.removeRole(memberId, ROLE_NAME);
+    return res.status(500).json({ message: (err as Error).message });
+  }
 
   res.status(200).json({ message: "Success" });
 };

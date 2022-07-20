@@ -18,7 +18,10 @@ class RedisAdapter {
         }
       });
     
-      this.client.on("error", err => console.log("Redis Client Error", err));
+      this.client.on("error", err => {
+        console.log("Redis Client Error", err);
+        throw new Error(err.message);
+      });
     }
   }
 
