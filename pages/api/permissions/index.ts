@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from 'redis';
 import Cors from "cors";
 import DiscordAdapter, { ROLE_NAME } from "../../../adapters/discord.adapter";
+import RedisAdapter from "../../../adapters/redis.adapter";
 
 const cors = Cors({
   methods: ["GET", "HEAD", "POST"],
@@ -52,7 +53,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   await discordAdapter.assignRole(req.body.memberId, ROLE_NAME);
 
-  await saveUserToken(memberId, tokenId);
+  RedisAdapter.initialize();
+  
+  await RedisAdapter.set(memberId, tokenId);
 
   res.status(200).json({ message: "Success" });
 };
