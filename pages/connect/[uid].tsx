@@ -80,7 +80,6 @@ const TokenRead = ({ address, uid, contractBalance, onStatusChange }: TokenReadP
   useEffect(() => {
     if (contractReads.some(read => read.isError)) onStatusChange(PermissionStatus.Error);
     if (contractReads.every(read => read.data)) {
-      console.log(`${contractReads.some(read => read.isError) || contractReads.every(read => read.data)}`)
       const tokenIds = contractReads.map(read => read.data?._hex);
       axios.post(`${BASE_URL}/api/permissions`, { memberId: uid, tokenIds })
         .then(() => onStatusChange(PermissionStatus.Success))
