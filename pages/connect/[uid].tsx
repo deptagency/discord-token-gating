@@ -15,11 +15,7 @@ type Props = {
   uid: string;
 };
 const ContractRead = ({ address, uid }: Props) => {
-  const {
-    data,
-    isError,
-    isLoading,
-  } = useContractRead({
+  const { data, isError, isLoading, } = useContractRead({
     addressOrName: contract.networks[4].address, //Rinkeby testnet is network 4
     contractInterface: contract.abi,
     functionName: "balanceOf",
