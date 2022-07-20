@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deployCommands": "node ./scripts/deploy-commands.js"
+    "deployCommands": "node ./scripts/deploy-commands.js",
+    "prettier": "prettier --write ."
   },
   "dependencies": {
     "@discordjs/builders": "^0.15.0",
@@ -35,6 +36,7 @@
     "eslint": "^8.15.0",
     "eslint-config-next": "^12.1.6",
     "postcss": "^8.4.14",
+    "prettier": "^2.7.1",
     "tailwindcss": "^3.1.6",
     "typescript": "^4.7.2"
   }

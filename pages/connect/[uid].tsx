@@ -15,11 +15,7 @@ type Props = {
   uid: string;
 };
 const ContractRead = ({ address, uid }: Props) => {
-  const {
-    data,
-    isError,
-    isLoading,
-  } = useContractRead({
+  const { data, isError, isLoading } = useContractRead({
     addressOrName: "0x485dbef4a8e09a5c652b9d9672265e0da4324a46",
     contractInterface: abi,
     functionName: "balanceOf",
@@ -51,7 +47,7 @@ const ContractRead = ({ address, uid }: Props) => {
     return <p>Error updating your Discord permissions</p>;
   if (permissionStatus === "success")
     return <p>Success! You now have full access to the Discord server.</p>;
-    if (permissionStatus === "noToken")
+  if (permissionStatus === "noToken")
     return <p>Uh-oh, looks like you don&apos;t have the required token.</p>;
   return null;
 };
@@ -62,10 +58,10 @@ const Home: NextPage = () => {
   const { address, isConnected } = useAccount();
   const [showContract, setShowContract] = useState<Boolean>(false);
   useEffect(() => {
-    if(isConnected) {
+    if (isConnected) {
       setShowContract(true);
     } else {
-      setShowContract(false)
+      setShowContract(false);
     }
   }, [isConnected]);
 
