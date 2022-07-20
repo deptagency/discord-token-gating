@@ -1,21 +1,20 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import axios from "axios";
-import type { NextComponentType, NextPage } from "next";
+import type { NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-
 import { useAccount, useContractRead } from "wagmi";
 import contract from "../../solidity/build/contracts/DiscordInvite.json";
-
+import StatusMessage from "../../components/StatusMessage";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
-type Props = {
+type ContractReadProps = {
   address: string;
   uid: string;
 };
-const ContractRead = ({ address, uid }: Props) => {
-  const { data, isError, isLoading, } = useContractRead({
+const ContractRead = ({ address, uid }: ContractReadProps) => {
+  const { data, isError } = useContractRead({
     addressOrName: contract.networks[4].address, //Rinkeby testnet is network 4
     contractInterface: contract.abi,
     functionName: "balanceOf",
@@ -39,17 +38,30 @@ const ContractRead = ({ address, uid }: Props) => {
     }
   }, [data, uid]);
 
-  if (isLoading) return <p>Loading contract...</p>;
-  if (isError) return <p>Error reading contract</p>;
-  if (permissionStatus === "loading")
-    return <p>Token found! Updating your Discord permissions...</p>;
-  if (permissionStatus === "error")
-    return <p>Error updating your Discord permissions</p>;
-  if (permissionStatus === "success")
-    return <p>Success! You now have full access to the Discord server.</p>;
-  if (permissionStatus === "noToken")
-    return <p>Uh-oh, looks like you don&apos;t have the required token.</p>;
-  return null;
+  if (isError)
+    return (
+      <p className="font-medium text-gray-900 h-12">Error reading contract.</p>
+    );
+  return (
+    <div className="h-12 mx-auto w-full text-center ">
+      <StatusMessage
+        message="Token found! Updating your Discord permissions..."
+        show={permissionStatus === "loading"}
+      />
+      <StatusMessage
+        message="Error updating your Discord permissions"
+        show={permissionStatus === "error"}
+      />
+      <StatusMessage
+        message="Success! Full access to the Discord server granted."
+        show={permissionStatus === "success"}
+      />
+      <StatusMessage
+        message="Uh-oh, you don't have the required token."
+        show={permissionStatus === "noToken"}
+      />
+    </div>
+  );
 };
 
 const Home: NextPage = () => {
@@ -71,18 +83,21 @@ const Home: NextPage = () => {
         <title>DEPT Discord Auth</title>
         <meta name="description" content="DEPT Discord NFT Auth" />
       </Head>
-
-      <main className="grid h-screen place-items-center">
-        <div className="grid grid-cols-1 justify-center gap-10 mx-auto">
-          <h1 className="mx-auto text-2xl font-light text-gray-800  w-72 text-center">
-            Connect your wallet to receive your channel invite
-          </h1>
-          <div className="mx-auto">
+      <main className="grid h-screen place-items-center bg-gradient-to-r from-sky-500 to-indigo-500 px-4">
+        <div className="bg-white my-3 overflow-hidden drop-shadow-2xl rounded-2xl ">
+          <div className="px-8 py-5 sm:px-6 ">
+            <h1 className="mx-auto text-xl sm:text-2xl font-light text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-indigo-500  text-center">
+              Connect your wallet to receive your channel invite
+            </h1>
+          </div>
+          <div className="px-4 py-5 sm:p-6 flex place-content-center">
             <ConnectButton />
           </div>
-          {showContract && (
-            <ContractRead address={address as string} uid={uid as string} />
-          )}
+          <div className="px-4 py-4 sm:px-6 flex place-content-center">
+            {showContract && (
+              <ContractRead address={address as string} uid={uid as string} />
+            )}
+          </div>
         </div>
       </main>
     </div>
