@@ -6,7 +6,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { useAccount, useContractRead } from "wagmi";
-import abi from "../../contract/abi";
+import contract from "../../solidity/build/contracts/DiscordInvite.json";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
@@ -27,8 +27,8 @@ const BalanceRead = ({ address, uid, onContractRead, onStatusChange }: BalanceRe
   // This gets how many of our contract's token the user posesses, which we pass to the next component
   // to control the loop to enumerate over all of said tokens they hold.
   const { data, isError } = useContractRead({
-    addressOrName: "0x485dbef4a8e09a5c652b9d9672265e0da4324a46",
-    contractInterface: abi,
+    addressOrName: contract.networks[4].address,
+    contractInterface: contract.abi,
     functionName: "balanceOf",
     args: address,
   });
@@ -69,8 +69,8 @@ const TokenRead = ({ address, uid, contractBalance, onStatusChange }: TokenReadP
     // with `balanceOf` which we called in the previous component, so that's how we got here.
     // https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Enumerable-tokenOfOwnerByIndex-address-uint256-
     const read = useContractRead({
-      addressOrName: "0x485dbef4a8e09a5c652b9d9672265e0da4324a46",
-      contractInterface: abi,
+      addressOrName: contract.networks[4].address,
+      contractInterface: contract.abi,
       functionName: "tokenOfOwnerByIndex",
       args: [address, i],
     });
