@@ -12,6 +12,20 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
 
+## Webhook setup
+
+- Signup for https://defender.openzeppelin.com
+- Create a Sentinel:
+  - Sentinel Type: Contract
+  - Network: your network
+  - Address: Contract's address
+  - ABI: Contract's ABI
+- Add a Webhook
+  - Subscribe to "Transfer" event
+  - Add link to your local running service
+    - example: https://37ec-185-168-41-140.eu.ngrok.io/api/webhooks/nft-transfer
+- Use Logs function to see if events are being tracked
+
 ## Learn More
 
 To learn more about this stack, take a look at the following resources:
