@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "deployCommands": "node ./scripts/deploy-commands.js",
-    "prettier": "prettier --write ."
+    "prettier": "prettier --write .",
+    "mint": "cd solidity && npx truffle exec --network rinkeby ./scripts/mint.js"
   },
   "dependencies": {
     "@discordjs/builders": "^0.15.0",
