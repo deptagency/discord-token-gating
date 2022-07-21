@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import abi from "../contract/abi";
+import contract from "../solidity/build/contracts/DiscordInvite.json";
 
 const contractAddress = process.env.CONTRACT_ADDRESS as string;
 
@@ -22,7 +22,7 @@ export default class EthereumAdapter {
       );
       EthereumAdapter.contract = new ethers.Contract(
         contractAddress,
-        abi,
+        contract.abi,
         EthereumAdapter.provider
       );
     }
@@ -47,7 +47,7 @@ export default class EthereumAdapter {
   }
 
   parseContractData(transaction: ethers.Transaction) {
-    const iface = new ethers.utils.Interface(abi);
+    const iface = new ethers.utils.Interface(contract.abi);
     const decoded = iface.parseTransaction(transaction);
     return decoded;
   }
