@@ -9,59 +9,104 @@ import contract from "../../solidity/build/contracts/DiscordInvite.json";
 import StatusMessage from "../../components/StatusMessage";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
-type ContractReadProps = {
+enum PermissionStatus {
+  Loading,
+  Success,
+  Error,
+  NoToken,
+}
+
+type BalanceReadProps = {
   address: string;
   uid: string;
+  onContractRead: (balance: number) => void;
+  onStatusChange: (newStatus: PermissionStatus) => void;
 };
-const ContractRead = ({ address, uid }: ContractReadProps) => {
+const BalanceRead = ({
+  address,
+  uid,
+  onContractRead,
+  onStatusChange,
+}: BalanceReadProps) => {
+  // This gets how many of our contract's token the user posesses, which we pass to the next component
+  // to control the loop to enumerate over all of said tokens they hold.
   const { data, isError } = useContractRead({
-    addressOrName: contract.networks[4].address, //Rinkeby testnet is network 4
+    addressOrName: contract.networks[4].address,
     contractInterface: contract.abi,
     functionName: "balanceOf",
     args: address,
   });
 
-  const [permissionStatus, setPermissionStatus] = useState<
-    "loading" | "success" | "error" | "noToken"
-  >();
   useEffect(() => {
     if (data && uid) {
-      if (parseInt(data._hex, 16) > 0) {
-        setPermissionStatus("loading");
-        axios
-          .post(`${BASE_URL}/api/permissions`, { memberId: uid })
-          .then((resp) => setPermissionStatus("success"))
-          .catch((err) => setPermissionStatus("error"));
+      const parsedBalance = parseInt(data._hex, 16);
+      if (parsedBalance > 0) {
+        onStatusChange(PermissionStatus.Loading);
+        onContractRead(parsedBalance);
       } else {
-        setPermissionStatus("noToken");
+        onStatusChange(PermissionStatus.NoToken);
       }
     }
-  }, [data, uid]);
+  }, [data, uid, onContractRead, onStatusChange]);
 
-  if (isError)
-    return (
-      <p className="font-medium text-gray-900 h-12">Error reading contract.</p>
-    );
-  return (
-    <div className="h-12 mx-auto w-full text-center ">
-      <StatusMessage
-        message="Token found! Updating your Discord permissions..."
-        show={permissionStatus === "loading"}
-      />
-      <StatusMessage
-        message="Error updating your Discord permissions"
-        show={permissionStatus === "error"}
-      />
-      <StatusMessage
-        message="Success! Full access to the Discord server granted."
-        show={permissionStatus === "success"}
-      />
-      <StatusMessage
-        message="Uh-oh, you don't have the required token."
-        show={permissionStatus === "noToken"}
-      />
-    </div>
-  );
+  useEffect(() => {
+    if (isError) {
+      onStatusChange(PermissionStatus.Error);
+    }
+  }, [isError, onStatusChange]);
+
+  return null;
+};
+
+type TokenReadProps = {
+  address: string;
+  uid: string;
+  contractBalance: number;
+  onStatusChange: (newStatus: PermissionStatus) => void;
+};
+
+const TokenRead = ({
+  address,
+  uid,
+  contractBalance,
+  onStatusChange,
+}: TokenReadProps) => {
+  const contractReads: any[] = [];
+
+  for (let i = 0; i < Number(contractBalance); i++) {
+    // This is the only functionality I could find to get the specific token ID's of the user's current holdings. It's
+    // pretty unsightly and roundabout to have a hook in a loop but it works. The docs said to use this in combination
+    // with `balanceOf` which we called in the previous component, so that's how we got here.
+    // https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Enumerable-tokenOfOwnerByIndex-address-uint256-
+
+    const read = useContractRead({
+      addressOrName: contract.networks[4].address,
+      contractInterface: contract.abi,
+      functionName: "tokenOfOwnerByIndex",
+      args: [address, i],
+    });
+    contractReads.push(read);
+  }
+
+  useEffect(() => {
+    if (contractReads.some((read) => read.isError))
+      onStatusChange(PermissionStatus.Error);
+    if (contractReads.every((read) => read.data)) {
+      const tokenIds = contractReads.map((read) =>
+        parseInt(read.data?._hex, 16)
+      );
+      console.log(tokenIds);
+      axios
+        .post(`${BASE_URL}/api/permissions`, { memberId: uid, tokenIds })
+        .then(() => onStatusChange(PermissionStatus.Success))
+        .catch(() => onStatusChange(PermissionStatus.Error));
+    }
+    // Since `useContractRead` doesn't return an actual promise or observable, we have no way to watch them. Next best thing.
+  }, [
+    contractReads.every((read) => read.data) ||
+      contractReads.some((read) => read.isError),
+  ]);
+  return null;
 };
 
 const Home: NextPage = () => {
@@ -69,6 +114,9 @@ const Home: NextPage = () => {
   const { uid } = router.query;
   const { address, isConnected } = useAccount();
   const [showContract, setShowContract] = useState<Boolean>(false);
+  const [contractBalance, setContractBalance] = useState<number>();
+  const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>();
+
   useEffect(() => {
     if (isConnected) {
       setShowContract(true);
@@ -76,6 +124,14 @@ const Home: NextPage = () => {
       setShowContract(false);
     }
   }, [isConnected]);
+
+  const handleContractRead = (data: number) => {
+    setContractBalance(data);
+  };
+
+  const handleStatusChange = (newStatus: PermissionStatus) => {
+    setPermissionStatus(newStatus);
+  };
 
   return (
     <div>
@@ -93,11 +149,42 @@ const Home: NextPage = () => {
           <div className="px-4 py-5 sm:p-6 flex place-content-center">
             <ConnectButton />
           </div>
-          <div className="px-4 py-4 sm:px-6 flex place-content-center">
-            {showContract && (
-              <ContractRead address={address as string} uid={uid as string} />
-            )}
-          </div>
+          {showContract && (
+            <BalanceRead
+              address={address as string}
+              uid={uid as string}
+              onContractRead={handleContractRead}
+              onStatusChange={handleStatusChange}
+            />
+          )}
+          {showContract && contractBalance !== undefined && (
+            <TokenRead
+              address={address as string}
+              uid={uid as string}
+              contractBalance={contractBalance}
+              onStatusChange={handleStatusChange}
+            />
+          )}
+          {showContract && (
+            <div className="h-12 mx-auto w-full text-center ">
+              <StatusMessage
+                message="Token found! Updating your Discord permissions..."
+                show={permissionStatus === PermissionStatus.Loading}
+              />
+              <StatusMessage
+                message="Error updating your Discord permissions"
+                show={permissionStatus === PermissionStatus.Error}
+              />
+              <StatusMessage
+                message="Success! Full access to the Discord server granted."
+                show={permissionStatus === PermissionStatus.Success}
+              />
+              <StatusMessage
+                message="Uh-oh, you don't have the required token."
+                show={permissionStatus === PermissionStatus.NoToken}
+              />
+            </div>
+          )}
         </div>
       </main>
     </div>

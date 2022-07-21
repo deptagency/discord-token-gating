@@ -65,6 +65,24 @@ export default class DiscordAdapter {
     }
   }
 
+  async removeRole(memberId: string, roleName: string) {
+    const guild = this.getGuild();
+    const role = await this.getRole(guild, roleName);
+    const member = await this.getMember(guild, memberId);
+
+    if (!member.roles.cache.find((role) => role.name === roleName)) {
+      // role not assigned, exit early
+      return;
+    }
+
+    try {
+      await member.roles.remove(role);
+    } catch (err) {
+      const error = err as DiscordAPIError;
+      throw error;
+    }
+  }
+
   async memberHasRole(memberId: string, roleName: string) {
     const guild = this.getGuild();
     const member = await this.getMember(guild, memberId);
