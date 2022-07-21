@@ -4,7 +4,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { useAccount, useContractRead } from "wagmi";
+import { useAccount, useContractRead, useContractReads } from "wagmi";
 import contract from "../../solidity/build/contracts/DiscordInvite.json";
 import StatusMessage from "../../components/StatusMessage";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
@@ -41,7 +41,6 @@ const BalanceRead = ({
     if (data && uid) {
       const parsedBalance = parseInt(data._hex, 16);
       if (parsedBalance > 0) {
-        onStatusChange(PermissionStatus.Loading);
         onContractRead(parsedBalance);
       } else {
         onStatusChange(PermissionStatus.NoToken);
@@ -64,48 +63,36 @@ type TokenReadProps = {
   contractBalance: number;
   onStatusChange: (newStatus: PermissionStatus) => void;
 };
-
 const TokenRead = ({
   address,
   uid,
   contractBalance,
   onStatusChange,
 }: TokenReadProps) => {
-  const contractReads: any[] = [];
-
-  for (let i = 0; i < Number(contractBalance); i++) {
-    // This is the only functionality I could find to get the specific token ID's of the user's current holdings. It's
-    // pretty unsightly and roundabout to have a hook in a loop but it works. The docs said to use this in combination
-    // with `balanceOf` which we called in the previous component, so that's how we got here.
-    // https://docs.openzeppelin.com/contracts/4.x/api/token/erc721#IERC721Enumerable-tokenOfOwnerByIndex-address-uint256-
-
-    const read = useContractRead({
+  const { data } = useContractReads({
+    contracts: Array.from({ length: Number(contractBalance) }, (_, i) => ({
       addressOrName: contract.networks[4].address,
       contractInterface: contract.abi,
       functionName: "tokenOfOwnerByIndex",
       args: [address, i],
-    });
-    contractReads.push(read);
-  }
-
-  useEffect(() => {
-    if (contractReads.some((read) => read.isError))
+    })),
+    onSuccess(data) {
+      if (data[0]) {
+        onStatusChange(PermissionStatus.Loading);
+        axios
+          .post(`${BASE_URL}/api/permissions`, {
+            memberId: uid,
+            tokenIds: data.map((i) => `NFT-${parseInt(i._hex, 16)}`),
+          })
+          .then(() => onStatusChange(PermissionStatus.Success))
+          .catch(() => onStatusChange(PermissionStatus.Error));
+      }
+    },
+    onError(err) {
       onStatusChange(PermissionStatus.Error);
-    if (contractReads.every((read) => read.data)) {
-      const tokenIds = contractReads.map((read) =>
-        parseInt(read.data?._hex, 16)
-      );
-      console.log(tokenIds);
-      axios
-        .post(`${BASE_URL}/api/permissions`, { memberId: uid, tokenIds })
-        .then(() => onStatusChange(PermissionStatus.Success))
-        .catch(() => onStatusChange(PermissionStatus.Error));
-    }
-    // Since `useContractRead` doesn't return an actual promise or observable, we have no way to watch them. Next best thing.
-  }, [
-    contractReads.every((read) => read.data) ||
-      contractReads.some((read) => read.isError),
-  ]);
+    },
+  });
+
   return null;
 };
 
@@ -113,15 +100,17 @@ const Home: NextPage = () => {
   const router = useRouter();
   const { uid } = router.query;
   const { address, isConnected } = useAccount();
-  const [showContract, setShowContract] = useState<Boolean>(false);
+  const [showContractStatus, setShowContractStatus] = useState<Boolean>(false);
   const [contractBalance, setContractBalance] = useState<number>();
-  const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>();
+  const [permissionStatus, setPermissionStatus] =
+    useState<PermissionStatus | null>();
 
   useEffect(() => {
     if (isConnected) {
-      setShowContract(true);
+      setShowContractStatus(true);
     } else {
-      setShowContract(false);
+      setPermissionStatus(null);
+      setShowContractStatus(false);
     }
   }, [isConnected]);
 
@@ -146,10 +135,10 @@ const Home: NextPage = () => {
               Connect your wallet to receive your channel invite
             </h1>
           </div>
-          <div className="px-4 py-5 sm:p-6 flex place-content-center">
+          <div className="px-4 pb-6 flex place-content-center">
             <ConnectButton />
           </div>
-          {showContract && (
+          {showContractStatus && address !== undefined && (
             <BalanceRead
               address={address as string}
               uid={uid as string}
@@ -157,7 +146,7 @@ const Home: NextPage = () => {
               onStatusChange={handleStatusChange}
             />
           )}
-          {showContract && contractBalance !== undefined && (
+          {showContractStatus && contractBalance !== undefined && (
             <TokenRead
               address={address as string}
               uid={uid as string}
@@ -165,7 +154,7 @@ const Home: NextPage = () => {
               onStatusChange={handleStatusChange}
             />
           )}
-          {showContract && (
+          {showContractStatus && (
             <div className="h-12 mx-auto w-full text-center ">
               <StatusMessage
                 message="Token found! Updating your Discord permissions..."
