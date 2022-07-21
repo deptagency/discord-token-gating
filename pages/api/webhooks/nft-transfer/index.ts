@@ -61,10 +61,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
       // TODO: rest of the logic
       // TODO: identify token from transaction details, and find member owning it
-      const memberId = "123456";
+      // const memberId = "123456";
 
-      const discordAdapter = await DiscordAdapter.getInstance();
-      await discordAdapter.removeRole(memberId, ROLE_NAME);
+      // const discordAdapter = await DiscordAdapter.getInstance();
+      // await discordAdapter.removeRole(memberId, ROLE_NAME);
     })
   );
 
