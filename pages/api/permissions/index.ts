@@ -26,22 +26,6 @@ function runMiddleware(
   });
 }
 
-const saveUserToken = async (memberId: string, tokenId: string) => {
-  const redis = createClient({
-    url : process.env.REDIS_URL,
-    password: process.env.REDIS_PASSWORD,
-    socket: {
-      tls: true
-    }
-  });
-
-  redis.on("error", err => console.log("Redis Client Error", err));
-
-  await redis.connect();
-  await redis.set(memberId, tokenId);
-  return redis.quit();
-};
-
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   await runMiddleware(req, res, cors);
   const { memberId, tokenIds } = req.body;
