@@ -2,15 +2,34 @@ This is a [RainbowKit](https://rainbowkit.com) + [wagmi](https://wagmi.sh) + [Ne
 
 ## Getting Started
 
+### Prerequisites
+
+#### Environment
+
+Recommended Node version is 18.6.0. If you're not using [nvm](https://github.com/nvm-sh/nvm), you should :wink:. This will use the correct version automatically, feeding from the project's `.nvmrc`. Make sure you run `nvm install 18` so you will have the correct version available.
+
+1. Create a `.env.local` in the project root and slack a team member for values.
+2. Run `npm install` from the project root.
+
+#### Minting a Token
+
+1. Run `npm install` from inside the `/solidity` directory.
+2. Create the `secrets.json` inside the `/solidity` directory and slack a team member for the contents of this file.
+3. From the project root, run `npm run mint` and follow the prompts.
+
+### Running the App
+
 First, run the development server:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. (If you get a 404 it's working.)
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+To test full functionality, begin the bot flow in Discord by typing `/invite` in Discord (If you already have the "Invited" role, delete it from yourself). Click the link the bot provides and copy the path after the hostname, it should be in the format `/connect/<memberId>`. Paste this onto the end of `localhost:3000` (ex: `http://localhost:3000/connect/1234567890`). After following the flow, you should see the "Invited" role appear on your user in Discord.
+
+You can start editing the page by modifying `pages/connect/[uid].tsx`. The page auto-updates as you edit the file.
 
 ## Learn More
 
