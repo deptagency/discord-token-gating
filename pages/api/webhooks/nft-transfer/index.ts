@@ -51,6 +51,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         console.log(`Operation safeMint is not supported.`);
         return;
       } else if (operation === SUPPORTED_OPERATIONS.TRANSFER_FROM) {
+        // arguments are: from, to, tokenId
         tokenId = parseInt(contractData.args[2].toString());
       } else {
         console.log(`Operation ${operation} is not supported.`);
