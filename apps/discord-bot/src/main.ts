@@ -1,7 +1,6 @@
-const { SlashCommandBuilder } = require("@discordjs/builders");
-const { REST } = require("@discordjs/rest");
-const { Routes } = require("discord-api-types/v9");
-require("dotenv").config({ path: "./.env.local" });
+import { SlashCommandBuilder } from '@discordjs/builders';
+import { REST } from "@discordjs/rest";
+import { Routes } from "discord-api-types/v9"
 
 const GUILD_ID = process.env.DISCORD_GUILD_ID;
 const TOKEN = process.env.DISCORD_TOKEN;

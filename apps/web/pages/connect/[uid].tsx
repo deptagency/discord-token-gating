@@ -6,7 +6,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { useAccount, useContractRead } from "wagmi";
-import contract from "../../solidity/build/contracts/DiscordInvite.json";
+import contract from "../../../../solidity/build/contracts/DiscordInvite.json";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 

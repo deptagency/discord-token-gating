@@ -38,3 +38,6 @@ secrets.json
 
 # typescript
 *.tsbuildinfo
+
+tmp
+dist

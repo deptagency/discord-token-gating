@@ -1,4 +1,4 @@
-import { Client, DiscordAPIError, Guild, Intents, Role } from "discord.js";
+import { Client, DiscordAPIError, GatewayIntentBits, Guild } from "discord.js";
 
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID as string;
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN as string;
@@ -15,7 +15,7 @@ export default class DiscordAdapter {
     if (!DiscordAdapter.instance) {
       DiscordAdapter.instance = new DiscordAdapter();
 
-      DiscordAdapter.client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+      DiscordAdapter.client = new Client({ intents: [GatewayIntentBits.Guilds] });
       await DiscordAdapter.client.login(DISCORD_TOKEN);
     }
 
