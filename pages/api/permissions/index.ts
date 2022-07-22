@@ -56,7 +56,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       await discord.removeRole(memberId, ROLE_NAME);
       return res.status(500).json({ message: (err as Error).message });
     }
-  } else if (tokens.every((t) => t.discordMemberId === Number(memberId))) {
+  } else if (tokens.every((t) => t.discordMemberId === memberId)) {
     const hasRole = await discord.memberHasRole(memberId, ROLE_NAME);
     if (!hasRole) {
       await discord.assignRole(memberId, ROLE_NAME);

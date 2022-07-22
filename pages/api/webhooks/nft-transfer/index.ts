@@ -1,6 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import DiscordAdapter, { ROLE_NAME } from "../../../../adapters/discord.adapter";
+import DiscordAdapter, {
+  ROLE_NAME,
+} from "../../../../adapters/discord.adapter";
 import EthereumAdapter from "../../../../adapters/ethereum.adapter";
+import SupabaseAdapter from "../../../../adapters/supabase.adapter";
 
 // partial
 interface SentinelRequestBody {
@@ -59,13 +62,29 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       }
 
       console.log(`Token found: ${tokenId}`);
+      const supabase = await SupabaseAdapter.getInstance();
+      const results = await supabase.getMemberByToken(tokenId);
 
-      // TODO: rest of the logic
-      // TODO: identify token from transaction details, and find member owning it
-      // const memberId = "123456";
+      if (results.length > 0) {
+        const { discordMemberId } = results[0];
+        console.log(`Member ${discordMemberId} found, deleting row`);
+        await supabase.deleteRowByToken(tokenId);
 
-      // const discordAdapter = await DiscordAdapter.getInstance();
-      // await discordAdapter.removeRole(memberId, ROLE_NAME);
+        const otherTokens = await supabase.getRowsByMember(discordMemberId);
+        if (otherTokens.length === 0) {
+          const discordAdapter = await DiscordAdapter.getInstance();
+          await discordAdapter.removeRole(discordMemberId, ROLE_NAME);
+          console.log(
+            "Member has no other tokens assigned, role has been removed."
+          );
+        } else {
+          console.log(
+            "Member has other tokens assigned, keeping role assignment."
+          );
+        }
+      } else {
+        console.log(`No member found for token ${tokenId}, no updates needed.`);
+      }
     })
   );
 

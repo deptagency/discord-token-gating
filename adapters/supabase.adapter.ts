@@ -31,7 +31,19 @@ export default class SupabaseAdapter {
     }
     return data;
   }
-  async getRowsByMember(discordMemberId: number) {
+
+  async getMemberByToken(tokenId: number) {
+    const { data, error, status } = await SupabaseAdapter.client
+      .from("nftUsers")
+      .select("discordMemberId")
+      .eq("tokenId", tokenId);
+
+    if (error) {
+      throw error;
+    }
+    return data;
+  }
+  async getRowsByMember(discordMemberId: string) {
     const { data, error } = await SupabaseAdapter.client
       .from("nftUsers")
       .select("tokenId, discordMemberId")
@@ -42,11 +54,21 @@ export default class SupabaseAdapter {
     }
     return data;
   }
-  async insertRows(tokenIds: number[], discordMemberId: number) {
+  async insertRows(tokenIds: number[], discordMemberId: string) {
     const { error } = await SupabaseAdapter.client.from("nftUsers").insert(
       tokenIds.map((tokenId) => ({ tokenId, discordMemberId })),
       { returning: "minimal" }
     );
+
+    if (error) {
+      throw error;
+    }
+  }
+  async deleteRowByToken(tokenId: number) {
+    const { error } = await SupabaseAdapter.client
+      .from("nftUsers")
+      .delete()
+      .eq("tokenId", tokenId);
 
     if (error) {
       throw error;

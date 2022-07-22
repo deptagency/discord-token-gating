@@ -45,6 +45,14 @@ You can start editing the page by modifying `pages/connect/[uid].tsx`. The page 
     - example: https://37ec-185-168-41-140.eu.ngrok.io/api/webhooks/nft-transfer
 - Use Logs function to see if events are being tracked
 
+## Supabase setup
+- Signup for https://supabase.com/
+- Create new project
+- Get service_role secret and URL to put into .env
+- Create new table "nftUsers"
+  - Primary key: tokenId, int8
+  - Add column discordMemberId, text
+- Hit /connect page and check in the supabase web table editor to see if new entries were successfully stored
 ## Learn More
 
 To learn more about this stack, take a look at the following resources:
