@@ -1,54 +1,112 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import axios from "axios";
-import type { NextComponentType, NextPage } from "next";
+import type { NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-
-import { useAccount, useContractRead } from "wagmi";
+import { useAccount, useContractRead, useContractReads } from "wagmi";
 import contract from "../../solidity/build/contracts/DiscordInvite.json";
-
+import StatusMessage from "../../components/StatusMessage";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
-type Props = {
+enum PermissionStatus {
+  Loading,
+  Success,
+  Error,
+  TokensAlreadyClaimed,
+  RoleAlreadyAssigned,
+  NoToken,
+}
+
+type BalanceReadProps = {
   address: string;
   uid: string;
+  onContractRead: (balance: number) => void;
+  onStatusChange: (newStatus: PermissionStatus) => void;
 };
-const ContractRead = ({ address, uid }: Props) => {
-  const { data, isError, isLoading, } = useContractRead({
-    addressOrName: contract.networks[4].address, //Rinkeby testnet is network 4
+const BalanceRead = ({
+  address,
+  uid,
+  onContractRead,
+  onStatusChange,
+}: BalanceReadProps) => {
+  // This gets how many of our contract's token the user posesses, which we pass to the next component
+  // to control the loop to enumerate over all of said tokens they hold.
+  const { data, isError } = useContractRead({
+    addressOrName: contract.networks[4].address,
     contractInterface: contract.abi,
     functionName: "balanceOf",
     args: address,
   });
 
-  const [permissionStatus, setPermissionStatus] = useState<
-    "loading" | "success" | "error" | "noToken"
-  >();
   useEffect(() => {
     if (data && uid) {
-      if (parseInt(data._hex, 16) > 0) {
-        setPermissionStatus("loading");
-        axios
-          .post(`${BASE_URL}/api/permissions`, { memberId: uid })
-          .then((resp) => setPermissionStatus("success"))
-          .catch((err) => setPermissionStatus("error"));
+      const parsedBalance = parseInt(data._hex, 16);
+      if (parsedBalance > 0) {
+        onContractRead(parsedBalance);
       } else {
-        setPermissionStatus("noToken");
+        onStatusChange(PermissionStatus.NoToken);
       }
     }
-  }, [data, uid]);
+  }, [data, uid, onContractRead, onStatusChange]);
 
-  if (isLoading) return <p>Loading contract...</p>;
-  if (isError) return <p>Error reading contract</p>;
-  if (permissionStatus === "loading")
-    return <p>Token found! Updating your Discord permissions...</p>;
-  if (permissionStatus === "error")
-    return <p>Error updating your Discord permissions</p>;
-  if (permissionStatus === "success")
-    return <p>Success! You now have full access to the Discord server.</p>;
-  if (permissionStatus === "noToken")
-    return <p>Uh-oh, looks like you don&apos;t have the required token.</p>;
+  useEffect(() => {
+    if (isError) {
+      onStatusChange(PermissionStatus.Error);
+    }
+  }, [isError, onStatusChange]);
+
+  return null;
+};
+
+type TokenReadProps = {
+  address: string;
+  uid: string;
+  contractBalance: number;
+  onStatusChange: (newStatus: PermissionStatus) => void;
+};
+const TokenRead = ({
+  address,
+  uid,
+  contractBalance,
+  onStatusChange,
+}: TokenReadProps) => {
+  const { data } = useContractReads({
+    contracts: Array.from({ length: Number(contractBalance) }, (_, i) => ({
+      addressOrName: contract.networks[4].address,
+      contractInterface: contract.abi,
+      functionName: "tokenOfOwnerByIndex",
+      args: [address, i],
+    })),
+    onSuccess(data) {
+      if (data[0]) {
+        onStatusChange(PermissionStatus.Loading);
+        axios
+          .post(`${BASE_URL}/api/permissions`, {
+            memberId: uid,
+            tokenIds: data.map((i) => `${parseInt(i._hex, 16)}`),
+          })
+          .then((resp) => {
+            if (resp.status === 201) {
+              onStatusChange(PermissionStatus.Success);
+            } else if (resp.status === 200) {
+              onStatusChange(PermissionStatus.RoleAlreadyAssigned);
+            }
+          })
+          .catch((err) => {
+            if (err.status === 403) {
+              onStatusChange(PermissionStatus.TokensAlreadyClaimed);
+            } else {
+              onStatusChange(PermissionStatus.Error);
+            }
+          });
+      }
+    },
+    onError(err) {
+      onStatusChange(PermissionStatus.Error);
+    },
+  });
+
   return null;
 };
 
@@ -56,14 +114,27 @@ const Home: NextPage = () => {
   const router = useRouter();
   const { uid } = router.query;
   const { address, isConnected } = useAccount();
-  const [showContract, setShowContract] = useState<Boolean>(false);
+  const [showContractStatus, setShowContractStatus] = useState<Boolean>(false);
+  const [contractBalance, setContractBalance] = useState<number>();
+  const [permissionStatus, setPermissionStatus] =
+    useState<PermissionStatus | null>();
+
   useEffect(() => {
     if (isConnected) {
-      setShowContract(true);
+      setShowContractStatus(true);
     } else {
-      setShowContract(false);
+      setPermissionStatus(null);
+      setShowContractStatus(false);
     }
   }, [isConnected]);
+
+  const handleContractRead = (data: number) => {
+    setContractBalance(data);
+  };
+
+  const handleStatusChange = (newStatus: PermissionStatus) => {
+    setPermissionStatus(newStatus);
+  };
 
   return (
     <div>
@@ -71,17 +142,61 @@ const Home: NextPage = () => {
         <title>DEPT Discord Auth</title>
         <meta name="description" content="DEPT Discord NFT Auth" />
       </Head>
-
-      <main className="grid h-screen place-items-center">
-        <div className="grid grid-cols-1 justify-center gap-10 mx-auto">
-          <h1 className="mx-auto text-2xl font-light text-gray-800  w-72 text-center">
-            Connect your wallet to receive your channel invite
-          </h1>
-          <div className="mx-auto">
+      <main className="grid h-screen place-items-center bg-gradient-to-r from-sky-500 to-indigo-500 px-4">
+        <div className="bg-white my-3 overflow-hidden drop-shadow-2xl rounded-2xl ">
+          <div className="px-8 py-5 sm:px-6 ">
+            <h1 className="mx-auto text-xl sm:text-2xl font-light text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-indigo-500  text-center">
+              Connect your wallet to receive your channel invite
+            </h1>
+          </div>
+          <div className="px-4 pb-6 flex place-content-center">
             <ConnectButton />
           </div>
-          {showContract && (
-            <ContractRead address={address as string} uid={uid as string} />
+          {showContractStatus && address !== undefined && (
+            <BalanceRead
+              address={address as string}
+              uid={uid as string}
+              onContractRead={handleContractRead}
+              onStatusChange={handleStatusChange}
+            />
+          )}
+          {showContractStatus && contractBalance !== undefined && (
+            <TokenRead
+              address={address as string}
+              uid={uid as string}
+              contractBalance={contractBalance}
+              onStatusChange={handleStatusChange}
+            />
+          )}
+          {showContractStatus && (
+            <div className="h-12 mx-auto w-full text-center ">
+              <StatusMessage
+                message="Token found! Updating your Discord permissions..."
+                show={permissionStatus === PermissionStatus.Loading}
+              />
+              <StatusMessage
+                message="Error updating your Discord permissions"
+                show={permissionStatus === PermissionStatus.Error}
+              />
+              <StatusMessage
+                message="These tokens have already been assigned to another user."
+                show={
+                  permissionStatus === PermissionStatus.TokensAlreadyClaimed
+                }
+              />
+              <StatusMessage
+                message="Access has already been granted."
+                show={permissionStatus === PermissionStatus.RoleAlreadyAssigned}
+              />
+              <StatusMessage
+                message="Success! Full access to the Discord server granted."
+                show={permissionStatus === PermissionStatus.Success}
+              />
+              <StatusMessage
+                message="Uh-oh, you don't have the required token."
+                show={permissionStatus === PermissionStatus.NoToken}
+              />
+            </div>
           )}
         </div>
       </main>
