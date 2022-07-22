@@ -16,7 +16,7 @@ const handler = async (
   res: NextApiResponse,
   interaction: APIApplicationCommandInteraction
 ) => {
-  if (interaction.data.name !== "invite-mateo") {
+  if (interaction.data.name !== "invite") {
     return res.status(200).json({
       type: 4,
       data: {
