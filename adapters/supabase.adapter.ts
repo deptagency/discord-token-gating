@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.SUPABASE_URL as string;
-const supabaseSecret = process.env.SUPABASE_SECRET as string;
+const supabaseSecret = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 
 export default class SupabaseAdapter {
   static instance: SupabaseAdapter;
