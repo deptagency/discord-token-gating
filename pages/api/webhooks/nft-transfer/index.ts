@@ -4,7 +4,7 @@ import EthereumAdapter from "../../../../adapters/ethereum.adapter";
 
 // partial
 interface SentinelRequestBody {
-  event: {
+  events: {
     transaction: {
       transactionHash: string;
     };
@@ -19,13 +19,13 @@ enum SUPPORTED_OPERATIONS {
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const body = req.body as SentinelRequestBody;
 
-  console.log(`Received ${body.event.length} events`);
+  console.log(`Received ${body.events.length} events`);
 
   const ethereumAdapter = EthereumAdapter.getInstance();
 
   // depending on configuration, we can receive many events at a time
   await Promise.all(
-    body.event.map(async (event) => {
+    body.events.map(async (event) => {
       const txHash = event.transaction.transactionHash;
       console.log(`Transaction: ${txHash}`);
 
