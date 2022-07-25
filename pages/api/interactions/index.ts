@@ -26,7 +26,7 @@ const handler = async (
     });
   }
 
-  // when user hits slash command from within the server, 
+  // when user hits slash command from within the server,
   // the user id is within the member object. If they
   // hit the command from DMs, the user id is in the user object.
   const memberId = interaction.member
@@ -40,7 +40,7 @@ const handler = async (
   return res.status(200).json({
     type: 4,
     data: {
-      content: `${BASE_URL}/connect/${interaction?.member?.user.id}`,
+      content: `${BASE_URL}/connect/${memberId}`,
       flags: 1 << 6,
     },
   });
