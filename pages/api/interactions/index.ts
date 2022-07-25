@@ -26,7 +26,14 @@ const handler = async (
     });
   }
 
-  if (!interaction.member?.user.id) {
+  // when user hits slash command from within the server, 
+  // the user id is within the member object. If they
+  // hit the command from DMs, the user id is in the user object.
+  const memberId = interaction.member
+    ? interaction.member.user.id
+    : interaction.user?.id;
+
+  if (!memberId) {
     throw new Error("missing user id");
   }
 
