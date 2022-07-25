@@ -30,23 +30,6 @@ const handler = async (
     throw new Error("missing user id");
   }
 
-  const discordAdapter = await DiscordAdapter.getInstance();
-
-  const roleAlreadyAssigned = await discordAdapter.memberHasRole(
-    interaction.member.user.id,
-    ROLE_NAME
-  );
-
-  if (roleAlreadyAssigned) {
-    return res.status(200).json({
-      type: 4,
-      data: {
-        content: "Role already assigned!",
-        flags: 1 << 6,
-      },
-    });
-  }
-
   return res.status(200).json({
     type: 4,
     data: {
