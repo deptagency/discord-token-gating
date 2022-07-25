@@ -39,13 +39,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const supabase = await SupabaseAdapter.getInstance();
   const discord = await DiscordAdapter.getInstance();
 
-  // in theory there should be no tokens already assigned, but
-  // just in case we'll check. Ignoring case where some but not all
-  // are assigned - just returning error if any already assigned
-  // to another user
-  const tokens = await supabase.getRowsByTokens(tokenIds);
+  // first check tokens to see if they are already claimed
+  const claimedTokens = await supabase.getRowsByTokens(tokenIds);
 
-  if (tokens.length === 0) {
+  if (claimedTokens.length === 0) {
     await discord.assignRole(memberId, ROLE_NAME);
     // wrap in a try/catch to treat as transaction
     // and remove discord roll if error occurs with supabase
@@ -56,7 +53,34 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       await discord.removeRole(memberId, ROLE_NAME);
       return res.status(500).json({ message: (err as Error).message });
     }
-  } else if (tokens.every((t) => t.discordMemberId === memberId)) {
+  } else {
+    // insert all tokens into DB, overwriting existing ones if they exist
+    await supabase.upsertRows(tokenIds, memberId);
+
+    // next check initial claimedTokens to see if other members have
+    // stale claims and need their role revoked
+    claimedTokens
+      .reduce((unique, o) => {
+        if (
+          !unique.some(
+            (obj: any) => obj.discordMemberId === o.discordMemberId
+          ) &&
+          o.discordMemberId !== memberId
+        ) {
+          unique.push(o.discordMemberId);
+        }
+        return unique;
+      }, [])
+      .forEach(async (member: string) => {
+        if (member !== memberId) {
+          const otherClaimedTokens = await supabase.getRowsByMember(member);
+          if (otherClaimedTokens.length === 0) {
+            discord.removeRole(member, ROLE_NAME);
+          }
+        }
+      });
+
+    // lastly update role of requesting member if needed
     const hasRole = await discord.memberHasRole(memberId, ROLE_NAME);
     if (!hasRole) {
       await discord.assignRole(memberId, ROLE_NAME);
@@ -64,10 +88,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     } else {
       res.status(200).json({ message: "Role already assigned" });
     }
-  } else {
-    res
-      .status(403)
-      .json({ error: "Tokens are already assigned to another user." });
   }
 };
 
