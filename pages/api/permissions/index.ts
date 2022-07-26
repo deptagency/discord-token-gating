@@ -72,11 +72,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         return unique;
       }, [])
       .forEach(async (member: string) => {
-        if (member !== memberId) {
-          const otherClaimedTokens = await supabase.getRowsByMember(member);
-          if (otherClaimedTokens.length === 0) {
-            discord.removeRole(member, ROLE_NAME);
-          }
+        const otherClaimedTokens = await supabase.getRowsByMember(member);
+        if (otherClaimedTokens.length === 0) {
+          discord.removeRole(member, ROLE_NAME);
         }
       });
 
