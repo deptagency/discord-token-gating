@@ -26,31 +26,21 @@ const handler = async (
     });
   }
 
-  if (!interaction.member?.user.id) {
+  // when user hits slash command from within the server,
+  // the user id is within the member object. If they
+  // hit the command from DMs, the user id is in the user object.
+  const memberId = interaction.member
+    ? interaction.member.user.id
+    : interaction.user?.id;
+
+  if (!memberId) {
     throw new Error("missing user id");
-  }
-
-  const discordAdapter = await DiscordAdapter.getInstance();
-
-  const roleAlreadyAssigned = await discordAdapter.memberHasRole(
-    interaction.member.user.id,
-    ROLE_NAME
-  );
-
-  if (roleAlreadyAssigned) {
-    return res.status(200).json({
-      type: 4,
-      data: {
-        content: "Role already assigned!",
-        flags: 1 << 6,
-      },
-    });
   }
 
   return res.status(200).json({
     type: 4,
     data: {
-      content: `${BASE_URL}/connect/${interaction?.member?.user.id}`,
+      content: `${BASE_URL}/connect/${memberId}`,
       flags: 1 << 6,
     },
   });
