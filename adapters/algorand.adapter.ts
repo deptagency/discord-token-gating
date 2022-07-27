@@ -54,6 +54,8 @@ export default class AlgorandAdapter {
 
     const account = result.data.account as AlgorandAccount;
 
+    console.log(account);
+
     return account;
   }
 }

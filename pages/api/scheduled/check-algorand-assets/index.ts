@@ -29,6 +29,8 @@ function runMiddleware(
 function verifyAccountHoldsToken(account: AlgorandAccount, assetId: string) {
   const assets = account.assets;
 
+  if (!assets) return false;
+
   if (assets.length === 0) return false;
 
   let tokenFound = false;
@@ -56,7 +58,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   // Some hardcoded address I found
   const retrievedAddresses = [
-    "3TJBXERIY2UQSU7JCLHY7EYK7CWSI463I75UMEGUWFABQZMBVGRVIQUTSA",
+    "J4OBAJ6X4R32I6LBIJF374VB7WFMKUED54II46WXOP5MFVQTCFUOWJWDLY",
   ];
 
   await Promise.all(
@@ -73,7 +75,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     })
   );
 
-  return res.status(200);
+  return res.status(200).send("OK");
 };
 
 export default handler;
