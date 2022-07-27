@@ -59,24 +59,23 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     // next check initial claimedTokens to see if other members have
     // stale claims and need their role revoked
-    claimedTokens
-      .reduce((unique, o) => {
-        if (
-          !unique.some(
-            (obj: any) => obj.discordMemberId === o.discordMemberId
-          ) &&
-          o.discordMemberId !== memberId
-        ) {
-          unique.push(o.discordMemberId);
-        }
-        return unique;
-      }, [])
-      .forEach(async (member: string) => {
-        const otherClaimedTokens = await supabase.getRowsByMember(member);
+    const otherMembers = claimedTokens.reduce((unique, o) => {
+      if (
+        !unique.some((obj: any) => obj.discordMemberId === o.discordMemberId) &&
+        o.discordMemberId !== memberId
+      ) {
+        unique.push(o.discordMemberId);
+      }
+      return unique;
+    }, []);
+    Promise.all(
+      otherMembers.map(async (memberId: string) => {
+        const otherClaimedTokens = await supabase.getRowsByMember(memberId);
         if (otherClaimedTokens.length === 0) {
-          discord.removeRole(member, ROLE_NAME);
+          await discord.removeRole(memberId, ROLE_NAME);
         }
-      });
+      })
+    );
 
     // lastly update role of requesting member if needed
     const hasRole = await discord.memberHasRole(memberId, ROLE_NAME);
