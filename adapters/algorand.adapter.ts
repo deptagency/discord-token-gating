@@ -2,7 +2,7 @@ import axios from "axios";
 
 export interface AlgorandAsset {
   amount: number;
-  "asset-id": string;
+  "asset-id": number;
   deleted: boolean;
   "is-frozen": boolean;
 }
@@ -14,7 +14,11 @@ export interface AlgorandAccount {
 }
 
 const ASA_ID = process.env.ASA_ID as string;
-const ALGORAND_NETWORK = process.env.ALGORAND_NETWORK as
+
+// Adjusted env variables here so frontend app can use the adapter
+// in case of
+const ALGORAND_NETWORK = (process.env.ALGORAND_NETWORK ||
+  process.env.NEXT_PUBLIC_ALGORAND_NETWORK) as
   | "mainnet"
   | "testnet"
   | "betanet";

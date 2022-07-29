@@ -3,6 +3,10 @@ import Cors from "cors";
 import AlgorandAdapter, {
   AlgorandAccount,
 } from "../../../../adapters/algorand.adapter";
+import SupabaseAdapter from "../../../../adapters/supabase.adapter";
+import DiscordAdapter, {
+  ROLE_NAME,
+} from "../../../../adapters/discord.adapter";
 
 const cors = Cors({
   methods: ["GET"],
@@ -26,7 +30,7 @@ function runMiddleware(
   });
 }
 
-function verifyAccountHoldsToken(account: AlgorandAccount, assetId: string) {
+function verifyAccountHoldsToken(account: AlgorandAccount, assetId: number) {
   const assets = account.assets;
 
   if (!assets) return false;
@@ -46,31 +50,24 @@ function verifyAccountHoldsToken(account: AlgorandAccount, assetId: string) {
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   await runMiddleware(req, res, cors);
 
-  // const supabase = await SupabaseAdapter.getInstance();
-  // const discord = await DiscordAdapter.getInstance();
-
+  const supabase = await SupabaseAdapter.getInstance();
+  const discord = await DiscordAdapter.getInstance();
   const algorandAdapter = AlgorandAdapter.getInstance();
 
-  const asaId = process.env.ASA_ID as string;
-
-  // For demo purposes only, this is bad approach!
-  // TODO: Fetch ALL Discord users that have an algorand asset used for the invite
-
-  // Some hardcoded address I found
-  const retrievedAddresses = [
-    "J4OBAJ6X4R32I6LBIJF374VB7WFMKUED54II46WXOP5MFVQTCFUOWJWDLY",
-  ];
+  const users = await supabase.getAllUsers_Algorand();
 
   await Promise.all(
-    retrievedAddresses.map(async (address) => {
-      const account = await algorandAdapter.getAccount(address);
+    users.map(async (user) => {
+      const account = await algorandAdapter.getAccount(user.blockchainAddress);
 
-      const tokenFound = verifyAccountHoldsToken(account, asaId);
+      const tokenFound = verifyAccountHoldsToken(account, user.assetId);
 
       if (!tokenFound) {
-        // TODO: remove entry from database
-        // TODO: remove from discord
-        // await discord.removeRole('memberId', ROLE_NAME)
+        console.log(
+          `Removing discord access for ${user.discordMemberId} discord member id`
+        );
+        await discord.removeRole(user.discordMemberId, ROLE_NAME);
+        await supabase.removeUserTokenClaim_Algorand(user.id);
       }
     })
   );
