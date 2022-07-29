@@ -68,7 +68,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       }
       return unique;
     }, []);
-    Promise.all(
+    await Promise.all(
       otherMembers.map(async (memberId: string) => {
         const otherClaimedTokens = await supabase.getRowsByMember(memberId);
         if (otherClaimedTokens.length === 0) {
