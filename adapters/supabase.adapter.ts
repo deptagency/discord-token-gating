@@ -64,6 +64,16 @@ export default class SupabaseAdapter {
       throw error;
     }
   }
+  async upsertRows(tokenIds: number[], discordMemberId: string) {
+    const { error } = await SupabaseAdapter.client.from("nftUsers").upsert(
+      tokenIds.map((tokenId) => ({ tokenId, discordMemberId })),
+      { returning: "minimal" }
+    );
+
+    if (error) {
+      throw error;
+    }
+  }
   async deleteRowByToken(tokenId: number) {
     const { error } = await SupabaseAdapter.client
       .from("nftUsers")
