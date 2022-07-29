@@ -1,7 +1,7 @@
 /*
  * Can use following script to mint tokens for given address
- * From within solidity directory, specify whether dev or rinkeby network
- * npx truffle exec --network development ./scripts/mint.js
+ * From within solidity directory, specify which network e.g. goerli
+ * npx truffle exec --network goerli ./scripts/mint.js
  */
 const readlineSync = require("readline-sync");
 module.exports = async function main(callback) {

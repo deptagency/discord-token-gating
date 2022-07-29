@@ -33,7 +33,7 @@ const BalanceRead = ({
   // This gets how many of our contract's token the user posesses, which we pass to the next component
   // to control the loop to enumerate over all of said tokens they hold.
   const { data, isError } = useContractRead({
-    addressOrName: contract.networks[4].address,
+    addressOrName: contract.networks[5].address,
     contractInterface: contract.abi,
     functionName: "balanceOf",
     args: address,
@@ -73,7 +73,7 @@ const TokenRead = ({
 }: TokenReadProps) => {
   const { data } = useContractReads({
     contracts: Array.from({ length: Number(contractBalance) }, (_, i) => ({
-      addressOrName: contract.networks[4].address,
+      addressOrName: contract.networks[5].address,
       contractInterface: contract.abi,
       functionName: "tokenOfOwnerByIndex",
       args: [address, i],

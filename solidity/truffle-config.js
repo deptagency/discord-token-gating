@@ -17,7 +17,6 @@
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
-require("dotenv").config({ path: "./.env.local" });
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 const { alchemyApiKey, mnemonic } = require("./secrets.json");
 
@@ -44,13 +43,13 @@ module.exports = {
       port: 8545, // Standard Ethereum port (default: none)
       network_id: "*", // Any network (default: none)
     },
-    rinkeby: {
+    goerli: {
       provider: () =>
         new HDWalletProvider(
           mnemonic,
-          `https://eth-rinkeby.alchemyapi.io/v2/${alchemyApiKey}`
+          `https://eth-goerli.g.alchemy.com/v2/${alchemyApiKey}`
         ),
-      network_id: 4,
+      network_id: 5,
       gasPrice: 10e9,
       skipDryRun: true,
     },
