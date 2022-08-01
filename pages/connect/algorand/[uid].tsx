@@ -133,6 +133,7 @@ const Home: NextPage = () => {
       const algorandAdapter = AlgorandAdapter.getInstance();
       const account = await algorandAdapter.getAccount(address);
       setAccount(account);
+      setShowContractStatus(true);
 
       if (account.assets) {
         const targetAssetId = Number(process.env.NEXT_PUBLIC_ASA_ID);
@@ -144,10 +145,13 @@ const Home: NextPage = () => {
         });
 
         if (assetFound) {
-          setShowContractStatus(true);
           setPermissionStatus(PermissionStatus.Loading);
           handleTokenForAccess(targetAssetId);
+        } else {
+          setPermissionStatus(PermissionStatus.NoToken);
         }
+      } else {
+        setPermissionStatus(PermissionStatus.NoToken);
       }
     } catch (error) {
       console.error(error);
