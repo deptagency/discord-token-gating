@@ -37,7 +37,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     res.status(400).json({ error: "No assetId provided" });
   }
 
-  if (assetId !== process.env.ASA_ID) {
+  if (assetId !== Number(process.env.ASA_ID)) {
     res.status(400).json({ error: "Asset id is not supported" });
   }
 
