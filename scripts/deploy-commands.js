@@ -21,6 +21,11 @@ const main = async () => {
       .setDescription(
         "Replies with a unique invite link for full access to this server."
       ),
+    new SlashCommandBuilder()
+      .setName("invite-algorand")
+      .setDescription(
+        "Replies with a unique invite link for full access to this server."
+      ),
   ].map((command) => command.toJSON());
 
   const rest = new REST({ version: "9" }).setToken(TOKEN);
