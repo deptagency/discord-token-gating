@@ -3,6 +3,7 @@ import Cors from "cors";
 import DiscordAdapter, { ROLE_NAME } from "../../../adapters/discord.adapter";
 import SupabaseAdapter from "../../../adapters/supabase.adapter";
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
+import EthereumAdapter from "../../../adapters/ethereum.adapter";
 
 const cors = Cors({
   methods: ["GET", "HEAD", "POST"],
@@ -27,19 +28,37 @@ function runMiddleware(
 }
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  await runMiddleware(req, res, cors);
-  const { tokenIds, memberId } = req.body;
+  runMiddleware(req, res, cors);
+  // validate request body
+  const { tokenIds, memberId, address } = req.body;
   if (!memberId) {
     res.status(400).json({ error: "No member ID provided" });
   }
   if (!tokenIds) {
     res.status(400).json({ error: "No tokenIds provided" });
   }
+  if (!address) {
+    res.status(400).json({ error: "No wallet provided" });
+  }
 
+  // Verify on chain token ownership
+  const eth = await EthereumAdapter.getInstance();
+  const addressTokenCount = await eth.getTokenBalance(address);
+
+  if (addressTokenCount < tokenIds.length) {
+    return res.status(400).json({ error: "Invalid tokens" });
+  }
+  const addressTokenIds = await eth.getTokensByAddress(
+    address,
+    addressTokenCount
+  );
+  if (!tokenIds.every((id: string) => addressTokenIds.includes(id))) {
+    return res.status(400).json({ error: "Invalid tokens" });
+  }
+
+  // next check tokens to see if they are already claimed
   const supabase = await SupabaseAdapter.getInstance();
   const discord = await DiscordAdapter.getInstance();
-
-  // first check tokens to see if they are already claimed
   const claimedTokens = await supabase.getRowsByTokens(tokenIds);
 
   if (claimedTokens.length === 0) {

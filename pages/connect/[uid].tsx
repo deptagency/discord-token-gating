@@ -85,6 +85,7 @@ const TokenRead = ({
           .post(`${BASE_URL}/api/permissions`, {
             memberId: uid,
             tokenIds: data.map((i) => `${parseInt(i._hex, 16)}`),
+            address: address
           })
           .then((resp) => {
             if (resp.status === 201) {
