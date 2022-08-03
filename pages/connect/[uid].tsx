@@ -1,6 +1,6 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import axios from "axios";
-import type { NextPage, NextPageContext } from "next";
+import type { GetServerSideProps, NextPage, NextPageContext } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -65,12 +65,14 @@ type TokenReadProps = {
   uid: string;
   contractBalance: number;
   onStatusChange: (newStatus: PermissionStatus) => void;
+  token: string;
 };
 const TokenRead = ({
   address,
   uid,
   contractBalance,
   onStatusChange,
+  token,
 }: TokenReadProps) => {
   const { data } = useContractReads({
     contracts: Array.from({ length: Number(contractBalance) }, (_, i) => ({
@@ -83,11 +85,19 @@ const TokenRead = ({
       if (data[0]) {
         onStatusChange(PermissionStatus.Loading);
         axios
-          .post(`${BASE_URL}/api/permissions`, {
-            memberId: uid,
-            tokenIds: data.map((i) => `${parseInt(i._hex, 16)}`),
-            address: address,
-          })
+          .post(
+            `${BASE_URL}/api/permissions`,
+            {
+              memberId: uid,
+              tokenIds: data.map((i) => `${parseInt(i._hex, 16)}`),
+              address: address,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
           .then((resp) => {
             if (resp.status === 201) {
               onStatusChange(PermissionStatus.Success);
@@ -112,7 +122,10 @@ const TokenRead = ({
   return null;
 };
 
-const Home: NextPage = () => {
+interface Props {
+  token: string;
+}
+const Home: NextPage<Props> = ({ token }) => {
   const router = useRouter();
   const { uid } = router.query;
   const { address, isConnected } = useAccount();
@@ -168,6 +181,7 @@ const Home: NextPage = () => {
               uid={uid as string}
               contractBalance={contractBalance}
               onStatusChange={handleStatusChange}
+              token={token}
             />
           )}
           {showContractStatus && (
@@ -177,6 +191,17 @@ const Home: NextPage = () => {
       </main>
     </div>
   );
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const secret = process.env.JWT_SECRET as string;
+  const memberId = context.query.uid;
+  const token = jwt.sign({ sub: memberId }, secret, {
+    expiresIn: "600s",
+  });
+  return {
+    props: { token },
+  };
 };
 
 export default Home;
