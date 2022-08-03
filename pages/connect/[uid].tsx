@@ -1,15 +1,16 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import axios from "axios";
-import type { NextPage } from "next";
+import type { NextPage, NextPageContext } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useAccount, useContractRead, useContractReads } from "wagmi";
+import jwt from "jsonwebtoken";
 import contract from "../../solidity/build/contracts/DiscordInvite.json";
 import StatusMessage from "../../components/StatusMessage";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
-enum PermissionStatus {
+export enum PermissionStatus {
   Loading,
   Success,
   Error,
@@ -85,7 +86,7 @@ const TokenRead = ({
           .post(`${BASE_URL}/api/permissions`, {
             memberId: uid,
             tokenIds: data.map((i) => `${parseInt(i._hex, 16)}`),
-            address: address
+            address: address,
           })
           .then((resp) => {
             if (resp.status === 201) {
@@ -170,34 +171,7 @@ const Home: NextPage = () => {
             />
           )}
           {showContractStatus && (
-            <div className="h-12 mx-auto w-full text-center ">
-              <StatusMessage
-                message="Token found! Updating your Discord permissions..."
-                show={permissionStatus === PermissionStatus.Loading}
-              />
-              <StatusMessage
-                message="Error updating your Discord permissions"
-                show={permissionStatus === PermissionStatus.Error}
-              />
-              <StatusMessage
-                message="These tokens have already been assigned to another user."
-                show={
-                  permissionStatus === PermissionStatus.TokensAlreadyClaimed
-                }
-              />
-              <StatusMessage
-                message="Access has already been granted."
-                show={permissionStatus === PermissionStatus.RoleAlreadyAssigned}
-              />
-              <StatusMessage
-                message="Success! Full access to the Discord server granted."
-                show={permissionStatus === PermissionStatus.Success}
-              />
-              <StatusMessage
-                message="Uh-oh, you don't have the required token."
-                show={permissionStatus === PermissionStatus.NoToken}
-              />
-            </div>
+            <StatusMessage permissionStatus={permissionStatus} />
           )}
         </div>
       </main>

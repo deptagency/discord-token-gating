@@ -1,11 +1,11 @@
 import { Transition } from "@headlessui/react";
-
-type StatusMessageProps = {
+import { PermissionStatus } from "../pages/connect/[uid]";
+type StatusProps = {
   message: string;
   show: boolean;
 };
 
-const StatusMessage = ({ message, show }: StatusMessageProps) => {
+const Status = ({ message, show }: StatusProps) => {
   return (
     <Transition
       show={show}
@@ -21,4 +21,38 @@ const StatusMessage = ({ message, show }: StatusMessageProps) => {
   );
 };
 
+const StatusMessage = ({
+  permissionStatus,
+}: {
+  permissionStatus: PermissionStatus | null | undefined;
+}) => {
+  return (
+    <div className="h-12 mx-auto w-full text-center ">
+      <Status
+        message="Token found! Updating your Discord permissions..."
+        show={permissionStatus === PermissionStatus.Loading}
+      />
+      <Status
+        message="Error updating your Discord permissions"
+        show={permissionStatus === PermissionStatus.Error}
+      />
+      <Status
+        message="These tokens have already been assigned to another user."
+        show={permissionStatus === PermissionStatus.TokensAlreadyClaimed}
+      />
+      <Status
+        message="Access has already been granted."
+        show={permissionStatus === PermissionStatus.RoleAlreadyAssigned}
+      />
+      <Status
+        message="Success! Full access to the Discord server granted."
+        show={permissionStatus === PermissionStatus.Success}
+      />
+      <Status
+        message="Uh-oh, you don't have the required token."
+        show={permissionStatus === PermissionStatus.NoToken}
+      />
+    </div>
+  );
+};
 export default StatusMessage;
