@@ -11,12 +11,14 @@ export const config = {
   },
 };
 
+const VALID_INTERACTION_NAMES = ["invite", "invite-algorand"];
+
 const handler = async (
   req: NextApiRequest,
   res: NextApiResponse,
   interaction: APIApplicationCommandInteraction
 ) => {
-  if (interaction.data.name !== "invite") {
+  if (!VALID_INTERACTION_NAMES.includes(interaction.data.name)) {
     return res.status(200).json({
       type: 4,
       data: {
@@ -37,10 +39,13 @@ const handler = async (
     throw new Error("missing user id");
   }
 
+  const targetUrl =
+    interaction.data.name === "invite" ? "connect" : "connect/algorand";
+
   return res.status(200).json({
     type: 4,
     data: {
-      content: `${BASE_URL}/connect/${memberId}`,
+      content: `${BASE_URL}/${targetUrl}/${memberId}`,
       flags: 1 << 6,
     },
   });

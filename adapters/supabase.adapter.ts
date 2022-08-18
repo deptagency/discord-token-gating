@@ -3,6 +3,13 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.SUPABASE_URL as string;
 const supabaseSecret = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 
+interface AlgorandUser {
+  id: number;
+  blockchainAddress: string;
+  discordMemberId: string;
+  assetId: number;
+}
+
 export default class SupabaseAdapter {
   static instance: SupabaseAdapter;
   static client: SupabaseClient;
@@ -83,5 +90,60 @@ export default class SupabaseAdapter {
     if (error) {
       throw error;
     }
+  }
+
+  async getUserTokenClaim_Algorand(discordMemberId: number, assetId: number) {
+    const { data, error } = await SupabaseAdapter.client
+      .from<AlgorandUser>("algorandUsers")
+      .select("id, assetId, discordMemberId, blockchainAddress")
+      .eq("discordMemberId", discordMemberId)
+      .eq("assetId", assetId);
+
+    if (error) {
+      throw error;
+    }
+
+    if (data.length) {
+      return data[0];
+    }
+
+    return undefined;
+  }
+
+  async getAllUsers_Algorand() {
+    const { data, error } = await SupabaseAdapter.client
+      .from<AlgorandUser>("algorandUsers")
+      .select("id, assetId, discordMemberId, blockchainAddress");
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+
+  async setUserTokenClaim_Algorand(
+    discordMemberId: string,
+    assetId: number,
+    blockchainAddress: string
+  ) {
+    const { data, error } = await SupabaseAdapter.client
+      .from("algorandUsers")
+      .insert({ discordMemberId, assetId, blockchainAddress });
+    if (error) {
+      throw error;
+    }
+    return data;
+  }
+
+  async removeUserTokenClaim_Algorand(id: number) {
+    const { data, error } = await SupabaseAdapter.client
+      .from("algorandUsers")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      throw error;
+    }
+    return data;
   }
 }
