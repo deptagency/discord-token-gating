@@ -38,6 +38,21 @@ export default class EthereumAdapter {
     return parsedBalance;
   }
 
+  async getTokensByAddress(address: string, tokenCount: number) {
+    let tokens: String[] = [];
+    await Promise.all(
+      Array.from({ length: tokenCount }, async (_, i) => {
+        const tokenResp =
+          await EthereumAdapter.contract.functions.tokenOfOwnerByIndex(
+            address,
+            i
+          );
+
+        tokens.push(tokenResp.toString());
+      })
+    );
+    return tokens;
+  }
   async getTransaction(hash: string) {
     return await EthereumAdapter.provider.getTransaction(hash);
   }

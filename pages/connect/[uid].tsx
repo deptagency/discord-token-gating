@@ -1,15 +1,16 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import axios from "axios";
-import type { NextPage } from "next";
+import type { GetServerSideProps, NextPage, NextPageContext } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useAccount, useContractRead, useContractReads } from "wagmi";
+import jwt from "jsonwebtoken";
 import contract from "../../solidity/build/contracts/DiscordInvite.json";
 import StatusMessage from "../../components/StatusMessage";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL as string;
 
-enum PermissionStatus {
+export enum PermissionStatus {
   Loading,
   Success,
   Error,
@@ -64,12 +65,14 @@ type TokenReadProps = {
   uid: string;
   contractBalance: number;
   onStatusChange: (newStatus: PermissionStatus) => void;
+  token: string;
 };
 const TokenRead = ({
   address,
   uid,
   contractBalance,
   onStatusChange,
+  token,
 }: TokenReadProps) => {
   const { data } = useContractReads({
     contracts: Array.from({ length: Number(contractBalance) }, (_, i) => ({
@@ -82,10 +85,19 @@ const TokenRead = ({
       if (data[0]) {
         onStatusChange(PermissionStatus.Loading);
         axios
-          .post(`${BASE_URL}/api/permissions`, {
-            memberId: uid,
-            tokenIds: data.map((i) => `${parseInt(i._hex, 16)}`),
-          })
+          .post(
+            `${BASE_URL}/api/permissions`,
+            {
+              memberId: uid,
+              tokenIds: data.map((i) => `${parseInt(i._hex, 16)}`),
+              address: address,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
           .then((resp) => {
             if (resp.status === 201) {
               onStatusChange(PermissionStatus.Success);
@@ -110,7 +122,10 @@ const TokenRead = ({
   return null;
 };
 
-const Home: NextPage = () => {
+interface Props {
+  token: string;
+}
+const Home: NextPage<Props> = ({ token }) => {
   const router = useRouter();
   const { uid } = router.query;
   const { address, isConnected } = useAccount();
@@ -166,42 +181,27 @@ const Home: NextPage = () => {
               uid={uid as string}
               contractBalance={contractBalance}
               onStatusChange={handleStatusChange}
+              token={token}
             />
           )}
           {showContractStatus && (
-            <div className="h-12 mx-auto w-full text-center ">
-              <StatusMessage
-                message="Token found! Updating your Discord permissions..."
-                show={permissionStatus === PermissionStatus.Loading}
-              />
-              <StatusMessage
-                message="Error updating your Discord permissions"
-                show={permissionStatus === PermissionStatus.Error}
-              />
-              <StatusMessage
-                message="These tokens have already been assigned to another user."
-                show={
-                  permissionStatus === PermissionStatus.TokensAlreadyClaimed
-                }
-              />
-              <StatusMessage
-                message="Access has already been granted."
-                show={permissionStatus === PermissionStatus.RoleAlreadyAssigned}
-              />
-              <StatusMessage
-                message="Success! Full access to the Discord server granted."
-                show={permissionStatus === PermissionStatus.Success}
-              />
-              <StatusMessage
-                message="Uh-oh, you don't have the required token."
-                show={permissionStatus === PermissionStatus.NoToken}
-              />
-            </div>
+            <StatusMessage permissionStatus={permissionStatus} />
           )}
         </div>
       </main>
     </div>
   );
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const secret = process.env.JWT_SECRET as string;
+  const memberId = context.query.uid;
+  const token = jwt.sign({ sub: memberId }, secret, {
+    expiresIn: "600s",
+  });
+  return {
+    props: { token },
+  };
 };
 
 export default Home;
